@@ -1,0 +1,218 @@
+<html>
+    <title>Крестики-нолики</title>
+    <head>
+        <meta charset = "UTF-8">
+        <link rel="stylesheet" href="jquery-ui-1.12.1.custom/jquery-ui.min.css">
+        <script src="jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script>
+        <script src="jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
+    </head>
+    <body align = "center">
+       <h1>Крестики-нолики</h1>
+
+        <table align = "center">
+            <tr>
+                <td>
+                    <div>Высота поля</div>
+                    <input id='field_height' value='3'>
+                </td>
+                <td>
+                    <div>Ширина поля</div>
+                    <input id='field_width' value='3'>
+                </td>
+                <td>
+                    <button onclick="settings();">Установить</button>
+                </td>
+            </tr>
+        </table>
+
+        <table align = "center">
+            <tr>
+                <td>
+                    <button onclick="document.location.reload();">Начать игру сначала</button>
+                </td>
+                <td>
+                    <button onclick="create_game_field();">Начать раунд сначала</button>
+                </td>
+            </tr>
+        </table>
+
+        <p id="cross_score">Счёт крестиков: 0</p>
+        <p id="circle_score">Счёт ноликов: 0</p>
+
+        <table align = "center" id="field" style="border: 2px solid black;">
+        </table>
+
+        <div id="end_dialog" title="Крестики-нолики">
+            <p>Раунд окончена</p>
+            <p id="player"></p>
+        </div>
+
+        <script language="JavaScript">
+            let field_width = 3;
+            let field_height = 3;
+            let cells_left = 9;
+            // 0 - ничего, 1 - крестик, 2 - кружочек
+            let field = [];
+
+            // false - крестик, true - кружочек
+            let player = false;
+
+            let cross_score = 0;
+            let circle_score = 0;
+
+            (function($){
+                $.fn.game = function(){
+                    create_game_field();
+                };
+            })(jQuery);
+
+            $(document).game();
+
+            $("#end_dialog").dialog({
+                autoOpen: false,
+                modal: true,
+                buttons: {
+                    "Начать игру сначала": function() {
+                        $(this).dialog("close");
+                        document.location.reload();
+                    },
+                    "Продолжить": function() {
+                        $(this).dialog("close");
+                        $(document).game();
+                    }
+                }
+            });
+
+            function round_end(win){
+                let player_e = document.getElementById("player");
+                if (win){
+                    if (player){
+                        player_e.innerHTML = "Победили нолики";
+                    }
+                    else{
+                        player_e.innerHTML = "Победили крестики";
+                    }
+                }
+                else{
+                    player_e.innerHTML = "Ничья";
+                }
+
+                $("#end_dialog").dialog("open");
+            }
+
+            function settings(){
+                let field_height_e = document.getElementById("field_height").value;
+                let field_width_e = document.getElementById("field_width").value;
+
+                let height = parseInt(field_height_e);
+                let width = parseInt(field_width_e);
+                if (isNaN(height) || isNaN(width)){
+                    return;
+                }
+                else{
+                    field_height = height;
+                    field_width = width;
+                    create_game_field();
+                }
+            }
+
+            function create_game_field(){
+                field = [];
+                player = false;
+                cells_left = field_width * field_height;
+
+                let game_field = document.getElementById("field");
+                game_field.innerHTML = "";
+
+                let tbdy = document.createElement('tbody');
+
+                for (let i=0;i<field_height;i++){
+                    let tr = document.createElement('tr');
+
+                    let line = [];
+                    for (let d=0;d<field_width;d++){
+                        var td = document.createElement('td');
+
+                        let id = i*field_width + d;
+                        td.id = "cell_" + id;
+                        td.align = "center";
+                        td.style = "border: 2px solid black;width: 100px;height: 100px;"
+                        td.innerHTML = "<img src='empty.jpg' style='width:90px;height:90px;' draggable='false'>";
+                        td.onclick = function(){
+                            set(i, d, id);
+                        };
+
+                        tr.appendChild(td);
+                        line.push(0);
+                    }
+
+                    tbdy.appendChild(tr);
+                    field.push(line);
+                }
+
+                game_field.appendChild(tbdy);
+            }
+
+            function set(r, c, id){
+                if (field[r][c]==0){
+                    let cell = document.getElementById("cell_" + id);
+
+                    if (player){
+                        cell.innerHTML = "<img src='круг.jpg' style='width:90px;height:90px;' draggable='false'>";
+                        field[r][c] = 2;
+                    }
+                    else{
+                        cell.innerHTML = "<img src='крест.jpg' style='width:90px;height:90px;' draggable='false'>";
+                        field[r][c] = 1;
+                    }
+
+                    if (gcell(r+1,c+1)==field[r][c] && gcell(r+2,c+2)==field[r][c] ||
+                        gcell(r-1,c-1)==field[r][c] && gcell(r-2,c-2)==field[r][c] ||
+                        gcell(r-1,c-1)==field[r][c] && gcell(r+1,c+1)==field[r][c] ||
+
+                        gcell(r+1,c-1)==field[r][c] && gcell(r+2,c-2)==field[r][c] ||
+                        gcell(r-1,c+1)==field[r][c] && gcell(r-2,c+2)==field[r][c] ||
+                        gcell(r-1,c+1)==field[r][c] && gcell(r+1,c-1)==field[r][c] ||
+
+                        gcell(r,c+1)==field[r][c] && gcell(r,c+2)==field[r][c] ||
+                        gcell(r,c-1)==field[r][c] && gcell(r,c-2)==field[r][c] ||
+                        gcell(r,c+1)==field[r][c] && gcell(r,c-1)==field[r][c] ||
+
+                        gcell(r+1,c)==field[r][c] && gcell(r+2,c)==field[r][c] ||
+                        gcell(r-1,c)==field[r][c] && gcell(r-2,c)==field[r][c] ||
+                        gcell(r+1,c)==field[r][c] && gcell(r-1,c)==field[r][c]
+                    ){
+                        if (player){
+                            circle_score++;
+                            let circle_score_e = document.getElementById("circle_score");
+                            circle_score_e.innerHTML = "Счёт ноликов: " + circle_score;
+                        }
+                        else{
+                            cross_score++;
+                            let cross_score_e = document.getElementById("cross_score");
+                            cross_score_e.innerHTML = "Счёт крестиков: " + cross_score;
+                        }
+
+                        round_end(true);
+                        return;
+                    }
+
+                    cells_left--;
+                    player=!player;
+
+                    if (cells_left == 0){
+                        round_end(false);
+                    }
+                }
+            }
+
+            function gcell(r, c){
+                let row = field[r];
+                if (row==null){
+                    return null;
+                }
+                return row[c];
+            }
+        </script>
+    </body>
+</html>
